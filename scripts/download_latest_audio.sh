@@ -11,6 +11,8 @@ AUDIO_FORMAT=${AUDIO_FORMAT:-m4a}
 AUDIO_QUALITY=${AUDIO_QUALITY:-5}
 OUTPUT_TEMPLATE=${OUTPUT_TEMPLATE:-"%(upload_date>%Y-%m-%d)s - %(title).100s [%(id)s].%(ext)s"}
 TRACE=${TRACE:-}
+COOKIES_FILE=${COOKIES_FILE:-}
+COOKIES_FROM_BROWSER=${COOKIES_FROM_BROWSER:-}
 
 mkdir -p "$DEST_DIR"
 touch "$LOG_FILE"
@@ -25,22 +27,40 @@ echo "[INFO] ${timestamp} Starting download run" | tee -a "$LOG_FILE"
 echo "[INFO] Channel URL: $CHANNEL_URL" | tee -a "$LOG_FILE"
 echo "[INFO] Destination directory: $DEST_DIR" | tee -a "$LOG_FILE"
 echo "[INFO] Archive file: $ARCHIVE_FILE" | tee -a "$LOG_FILE"
+if [[ -n "$COOKIES_FILE" ]]; then
+  echo "[INFO] Using cookies file: $COOKIES_FILE" | tee -a "$LOG_FILE"
+elif [[ -n "$COOKIES_FROM_BROWSER" ]]; then
+  echo "[INFO] Using cookies from browser: $COOKIES_FROM_BROWSER" | tee -a "$LOG_FILE"
+fi
 
 set +e
-yt-dlp \
-  -i \
-  -f "$FORMAT" \
-  -x --audio-format "$AUDIO_FORMAT" \
-  --audio-quality "$AUDIO_QUALITY" \
-  --download-archive "$ARCHIVE_FILE" \
-  --output "$OUTPUT_TEMPLATE" \
-  --paths "$DEST_DIR" \
-  --max-downloads "$MAX_DOWNLOADS" \
-  --retries 3 \
-  --sleep-requests 2 \
-  --sleep-interval 2 --max-sleep-interval 5 \
-  "$CHANNEL_URL" 2>&1 | tee -a "$LOG_FILE"
-status=$?
+yt_args=(
+  yt-dlp
+  -i
+  -f "$FORMAT"
+  -x
+  --audio-format "$AUDIO_FORMAT"
+  --audio-quality "$AUDIO_QUALITY"
+  --download-archive "$ARCHIVE_FILE"
+  --output "$OUTPUT_TEMPLATE"
+  --paths "$DEST_DIR"
+  --max-downloads "$MAX_DOWNLOADS"
+  --retries 3
+  --sleep-requests 2
+  --sleep-interval 2
+  --max-sleep-interval 5
+)
+
+if [[ -n "$COOKIES_FILE" ]]; then
+  yt_args+=(--cookies "$COOKIES_FILE")
+elif [[ -n "$COOKIES_FROM_BROWSER" ]]; then
+  yt_args+=(--cookies-from-browser "$COOKIES_FROM_BROWSER")
+fi
+
+yt_args+=("$CHANNEL_URL")
+
+"${yt_args[@]}" 2>&1 | tee -a "$LOG_FILE"
+status=${PIPESTATUS[0]}
 set -e
 
 if [[ $status -ne 0 && $status -ne 101 ]]; then
