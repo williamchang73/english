@@ -30,6 +30,7 @@ jobs:
         env:
           CHANNEL_URL: https://www.youtube.com/@LTStudioclassroomCom/videos
           DEST_DIR: ${{ github.workspace }}/downloads
+          TRACE: "1"
         run: |
           scripts/download_latest_audio.sh
 
