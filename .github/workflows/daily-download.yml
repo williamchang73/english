@@ -11,6 +11,8 @@ permissions:
 jobs:
   fetch-audio:
     runs-on: ubuntu-latest
+    env:
+      YT_COOKIES: ${{ secrets.YT_COOKIES }}
 
     steps:
       - name: Checkout
@@ -28,9 +30,7 @@ jobs:
 
       - name: Prepare cookies
         id: cookies
-        if: ${{ secrets.YT_COOKIES != '' }}
-        env:
-          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        if: ${{ env.YT_COOKIES != '' }}
         shell: bash
         run: |
           set -euo pipefail
