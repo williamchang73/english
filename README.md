@@ -56,22 +56,26 @@ The workflow in `.github/workflows/daily-download.yml` runs daily (12:00 UTC) an
 
 Workflow logs are written to `downloads/yt-dlp.log`. Successful “no new video” runs append a message there so you can verify the archive check.
 
-To authenticate inside GitHub Actions, store an exported `NETSCAPE`-format cookie file as an encrypted secret (e.g. `YT_COOKIES`) and write it to disk before calling the script:
+To authenticate inside GitHub Actions, base64-encode the cookies and store them as the `YT_COOKIES` secret. Then decode them in a prep step and reuse the emitted path:
 
 ```yaml
       - name: Prepare cookies
-        if: secrets.YT_COOKIES != ''
-        run: |
-          echo "$YT_COOKIES" | base64 --decode > "$GITHUB_WORKSPACE/youtube-cookies.txt"
+        id: cookies
+        if: ${{ secrets.YT_COOKIES != '' }}
         env:
           YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          set -euo pipefail
+          target="$GITHUB_WORKSPACE/youtube-cookies.txt"
+          printf '%s' "${YT_COOKIES}" | base64 --decode > "$target"
+          echo "path=$target" >> "$GITHUB_OUTPUT"
 
       - name: Download latest audio
         env:
           CHANNEL_URL: https://www.youtube.com/@LTStudioclassroomCom/videos
           DEST_DIR: ${{ github.workspace }}/downloads
           TRACE: "1"
-          COOKIES_FILE: ${{ github.workspace }}/youtube-cookies.txt
+          COOKIES_FILE: ${{ steps.cookies.outputs.path }}
         run: |
           scripts/download_latest_audio.sh
 ```

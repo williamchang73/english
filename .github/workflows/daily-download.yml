@@ -26,11 +26,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install yt-dlp
 
+      - name: Prepare cookies
+        id: cookies
+        if: ${{ secrets.YT_COOKIES != '' }}
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$GITHUB_WORKSPACE/youtube-cookies.txt"
+          printf '%s' "${YT_COOKIES}" | base64 --decode > "$target"
+          echo "path=$target" >> "$GITHUB_OUTPUT"
+
       - name: Download latest audio
         env:
           CHANNEL_URL: https://www.youtube.com/@LTStudioclassroomCom/videos
           DEST_DIR: ${{ github.workspace }}/downloads
           TRACE: "1"
+          COOKIES_FILE: ${{ steps.cookies.outputs.path }}
         run: |
           scripts/download_latest_audio.sh
 
